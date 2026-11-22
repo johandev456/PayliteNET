@@ -1,17 +1,6 @@
+// Placeholder de la fase 3: el flujo HTTP completo llega en la fase 4.
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
 app.Run();
+
+public partial class Program;
