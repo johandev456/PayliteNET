@@ -1,0 +1,115 @@
+# PayLite: infraestructura + servicios.
+#   docker compose up -d                  → solo bases y Keycloak (servicios desde el IDE)
+#   docker compose --profile apps up -d --build  → todo en contenedores
+# Contraseñas solo de desarrollo: no se usan en ningún otro entorno.
+name: paylite
+
+x-postgres: &postgres
+  image: postgres:16-alpine
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+
+services:
+  postgres-accounts:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: accounts
+      POSTGRES_USER: paylite
+      POSTGRES_PASSWORD: paylite_dev
+    ports: ["5433:5432"]
+    volumes: [accounts-data:/var/lib/postgresql/data]
+
+  postgres-payments:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: paylite
+      POSTGRES_PASSWORD: paylite_dev
+    ports: ["5434:5432"]
+    volumes: [payments-data:/var/lib/postgresql/data]
+
+  keycloak-db:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_dev
+    volumes: [keycloak-data:/var/lib/postgresql/data]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2
+    command: ["start-dev", "--import-realm"]
+    restart: unless-stopped
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: kcadmin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: kcadmin-dev
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_dev
+      # iss SIEMPRE http://localhost:8081/realms/paylite, se pida el token desde fuera o desde
+      # dentro de Docker (http://keycloak:8080). Las URLs de backchannel (jwks, token) sí siguen
+      # al host que pregunta, así los servicios bajan las llaves por la red interna.
+      KC_HOSTNAME: http://localhost:8081
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports: ["8081:8080"]
+    volumes:
+      - ./keycloak/realm-paylite.json:/opt/keycloak/data/import/realm-paylite.json:ro
+    depends_on:
+      keycloak-db: { condition: service_healthy }
+    healthcheck:
+      # La imagen no trae curl: petición HTTP a mano al puerto de management.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  account-service:
+    profiles: [apps]
+    build:
+      context: .
+      dockerfile: src/AccountService/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Accounts: Host=postgres-accounts;Port=5432;Database=accounts;Username=paylite;Password=paylite_dev
+      Auth__MetadataAddress: http://keycloak:8080/realms/paylite/.well-known/openid-configuration
+      Auth__Issuer: http://localhost:8081/realms/paylite
+      Auth__RequireHttpsMetadata: "false"
+    ports: ["5001:8080"]
+    depends_on:
+      postgres-accounts: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+
+  payment-service:
+    profiles: [apps]
+    build:
+      context: .
+      dockerfile: src/PaymentService/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Payments: Host=postgres-payments;Port=5432;Database=payments;Username=paylite;Password=paylite_dev
+      Auth__MetadataAddress: http://keycloak:8080/realms/paylite/.well-known/openid-configuration
+      Auth__Issuer: http://localhost:8081/realms/paylite
+      Auth__RequireHttpsMetadata: "false"
+      AccountService__BaseUrl: http://account-service:8080/
+      ServiceClient__TokenEndpoint: http://keycloak:8080/realms/paylite/protocol/openid-connect/token
+      ServiceClient__ClientSecret: payment-service-dev-secret
+    ports: ["5002:8080"]
+    depends_on:
+      postgres-payments: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+      account-service: { condition: service_started }
+
+volumes:
+  accounts-data:
+  payments-data:
+  keycloak-data:
