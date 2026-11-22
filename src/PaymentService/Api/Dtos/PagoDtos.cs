@@ -47,10 +47,12 @@ public sealed record PaginaResponse<T>(IReadOnlyList<T> Items, int Pagina, int T
 public static class Paginacion
 {
     public const int TamanoMaximo = 100;
+    /// <summary>Tope para que (pagina - 1) * tamano no desborde int.</summary>
+    public const int PaginaMaxima = 1_000_000;
 
     public static void Validar(int pagina, int tamano)
     {
-        if (pagina < 1 || tamano < 1 || tamano > TamanoMaximo)
-            throw new EntradaInvalidaException($"pagina debe ser ≥ 1 y tamano entre 1 y {TamanoMaximo}.");
+        if (pagina < 1 || pagina > PaginaMaxima || tamano < 1 || tamano > TamanoMaximo)
+            throw new EntradaInvalidaException($"pagina debe estar entre 1 y {PaginaMaxima} y tamano entre 1 y {TamanoMaximo}.");
     }
 }

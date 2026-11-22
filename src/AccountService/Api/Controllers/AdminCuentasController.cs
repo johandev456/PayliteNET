@@ -13,13 +13,15 @@ namespace AccountService.Api.Controllers;
 public sealed class AdminCuentasController(CuentaService cuentas) : ControllerBase
 {
     private const int TamanoMaximo = 100;
+    // Tope para que (pagina - 1) * tamano no desborde int.
+    private const int PaginaMaxima = 1_000_000;
 
     [HttpGet]
     public async Task<PaginaResponse<CuentaAdminResponse>> Listar(
         [FromQuery] int pagina = 1, [FromQuery] int tamano = 20, CancellationToken ct = default)
     {
-        if (pagina < 1 || tamano < 1 || tamano > TamanoMaximo)
-            throw new EntradaInvalidaException($"pagina debe ser ≥ 1 y tamano entre 1 y {TamanoMaximo}.");
+        if (pagina < 1 || pagina > PaginaMaxima || tamano < 1 || tamano > TamanoMaximo)
+            throw new EntradaInvalidaException($"pagina debe estar entre 1 y {PaginaMaxima} y tamano entre 1 y {TamanoMaximo}.");
 
         var (items, total) = await cuentas.ListarTodasAsync(pagina, tamano, ct);
         return new PaginaResponse<CuentaAdminResponse>(items.Select(CuentaAdminResponse.De).ToList(), pagina, tamano, total);
