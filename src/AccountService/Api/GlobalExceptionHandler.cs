@@ -13,6 +13,14 @@ public sealed class GlobalExceptionHandler(IProblemDetailsService problemDetails
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext ctx, Exception ex, CancellationToken ct)
     {
+        // El cliente cerró la conexión: no es un error del servidor ni hay a quién responder.
+        if (ex is OperationCanceledException && ctx.RequestAborted.IsCancellationRequested)
+        {
+            log.LogInformation("Petición cancelada por el cliente: {Metodo} {Ruta}", ctx.Request.Method, ctx.Request.Path);
+            ctx.Response.StatusCode = 499;
+            return true;
+        }
+
         var (status, titulo, detalle) = ex switch
         {
             DomainException d => (d.Status, d.Titulo, d.Message),
