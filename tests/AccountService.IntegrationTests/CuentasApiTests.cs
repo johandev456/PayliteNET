@@ -268,4 +268,26 @@ public sealed class CuentasApiTests(PostgresFixture pg) : IAsyncLifetime
         Assert.Equal(HttpStatusCode.BadRequest,
             (await _api.CreateClient().Como(Admin).GetAsync("/api/admin/cuentas?tamano=1000")).StatusCode);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1_000_001)]
+    // (pagina - 1) * tamano desbordaría int: antes llegaba un OFFSET negativo a Postgres y respondía 500.
+    [InlineData(int.MaxValue)]
+    public async Task Admin_pagina_fuera_de_rango_400(int pagina)
+    {
+        var resp = await _api.CreateClient().Como(Admin).GetAsync($"/api/admin/cuentas?pagina={pagina}&tamano=100");
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_ultima_pagina_permitida_responde_vacia()
+    {
+        await CrearCuentaAsync();
+        var pagina = await _api.CreateClient().Como(Admin)
+            .GetFromJsonAsync<JsonElement>("/api/admin/cuentas?pagina=1000000&tamano=100");
+
+        Assert.Equal(0, pagina.GetProperty("items").GetArrayLength());
+        Assert.Equal(1, pagina.GetProperty("total").GetInt64());
+    }
 }
