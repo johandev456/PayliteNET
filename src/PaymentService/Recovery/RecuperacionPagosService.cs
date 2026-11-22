@@ -94,10 +94,22 @@ public sealed class RecuperacionPagosService(
                 return;
             }
 
-            var token = await sp.GetRequiredService<IServiceTokenProvider>().ObtenerAsync(ct);
+            var tokens = sp.GetRequiredService<IServiceTokenProvider>();
+            var token = await tokens.ObtenerAsync(ct);
             var cuentas = sp.GetRequiredService<AccountClient>();
-            await sp.GetRequiredService<PagoService>()
-                .ProcesarDebitoAsync(pago, c => cuentas.DebitarComoServicioAsync(pago, token, c), ct);
+            await sp.GetRequiredService<PagoService>().ProcesarDebitoAsync(pago, async c =>
+            {
+                try
+                {
+                    return await cuentas.DebitarComoServicioAsync(pago, token, c);
+                }
+                catch (CuentasNoDisponibleException ex) when (ex.TokenRechazado)
+                {
+                    // El próximo intento pide un token nuevo en vez de reusar el rechazado hasta que venza.
+                    tokens.Invalidar(token);
+                    throw;
+                }
+            }, ct);
         }
         catch (ServicioCuentasException ex)
         {

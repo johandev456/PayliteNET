@@ -183,6 +183,36 @@ public sealed class PagosApiTests(PostgresFixture pg) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Recuperacion_descarta_el_token_de_servicio_si_account_service_lo_rechaza()
+    {
+        _cuentas.Modo = Falla.Caido;
+        var pagoId = (await Json(await PagarAsync(100m))).GetProperty("pagoId").GetGuid();
+
+        // AccountService vuelve, pero rechaza el token de servicio cacheado (401).
+        _cuentas.Modo = Falla.TokenRechazado;
+        await RecuperarAsync();
+
+        Assert.Equal("PENDIENTE", await EstadoAsync(pagoId));
+        Assert.Equal(PaymentApi.TokenServicio, Assert.Single(_api.TokensInvalidados));
+        Assert.Empty(_cuentas.Cobrados);
+
+        // Con un token válido, el siguiente ciclo lo aprueba.
+        _cuentas.Modo = Falla.Ninguna;
+        await RecuperarAsync();
+        Assert.Equal("APROBADO", await EstadoAsync(pagoId));
+    }
+
+    [Fact]
+    public async Task Fallo_que_no_es_del_token_no_lo_descarta()
+    {
+        _cuentas.Modo = Falla.Caido;
+        await PagarAsync(100m);
+
+        await RecuperarAsync();
+        Assert.Empty(_api.TokensInvalidados);
+    }
+
+    [Fact]
     public async Task Sin_respuesta_tras_el_maximo_de_intentos_pasa_a_revision_manual()
     {
         _cuentas.Modo = Falla.Caido;

@@ -20,9 +20,12 @@ public sealed record RespuestaDebito(ResultadoDebito Resultado, string? Motivo =
 /// AccountService no respondió de forma útil (caído, timeout, 5xx). El débito pudo o no aplicarse:
 /// el pago se queda PENDIENTE y se reintenta con el mismo id de operación.
 /// </summary>
-public sealed class CuentasNoDisponibleException(int status, string detalle, Exception? inner = null)
+public sealed class CuentasNoDisponibleException(int status, string detalle, Exception? inner = null, bool tokenRechazado = false)
     : Exception(detalle, inner)
 {
+    /// <summary>AccountService respondió 401/403: el token enviado no sirve (vencido, revocado, sin rol).</summary>
+    public bool TokenRechazado { get; } = tokenRechazado;
+
     /// <summary>502 respuesta inválida/5xx, 503 sin conexión o circuito abierto, 504 timeout.</summary>
     public int Status { get; } = status;
 }
@@ -91,7 +94,8 @@ public sealed class AccountClient(HttpClient http, ILogger<AccountClient> log)
                     log.LogWarning("AccountService respondió {Status} al débito del pago {PagoId}: {Problema}",
                         (int)resp.StatusCode, pago.Id, problema);
                     throw new CuentasNoDisponibleException(502,
-                        $"AccountService respondió {(int)resp.StatusCode} al débito.");
+                        $"AccountService respondió {(int)resp.StatusCode} al débito.",
+                        tokenRechazado: resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden);
             }
         }
     }

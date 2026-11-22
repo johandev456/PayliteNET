@@ -26,6 +26,9 @@ public sealed class PaymentApi(string conexion, CuentasFalsas cuentas) : WebAppl
 {
     public const string TokenServicio = "token-de-servicio";
 
+    /// <summary>Tokens que la recuperación pidió descartar.</summary>
+    public ConcurrentQueue<string> TokensInvalidados { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -45,13 +48,14 @@ public sealed class PaymentApi(string conexion, CuentasFalsas cuentas) : WebAppl
         {
             s.AddHttpClient<AccountClient>().ConfigurePrimaryHttpMessageHandler(() => cuentas);
             s.RemoveAll<IServiceTokenProvider>();
-            s.AddSingleton<IServiceTokenProvider>(new TokenFijo());
+            s.AddSingleton<IServiceTokenProvider>(new TokenFijo(TokensInvalidados));
         });
     }
 
-    private sealed class TokenFijo : IServiceTokenProvider
+    private sealed class TokenFijo(ConcurrentQueue<string> invalidados) : IServiceTokenProvider
     {
         public Task<string> ObtenerAsync(CancellationToken ct) => Task.FromResult(TokenServicio);
+        public void Invalidar(string token) => invalidados.Enqueue(token);
     }
 }
 
@@ -63,7 +67,7 @@ public sealed record LlamadaDebito(string Ruta, string? IdempotencyKey, string? 
 /// </summary>
 public sealed class CuentasFalsas : HttpMessageHandler
 {
-    public enum Falla { Ninguna, SaldoInsuficiente, CuentaNoExiste, Caido, Lento, Error500 }
+    public enum Falla { Ninguna, SaldoInsuficiente, CuentaNoExiste, Caido, Lento, Error500, TokenRechazado }
 
     public Falla Modo { get; set; }
     public ConcurrentQueue<LlamadaDebito> Llamadas { get; } = new();
@@ -88,6 +92,8 @@ public sealed class CuentasFalsas : HttpMessageHandler
                 break;
             case Falla.Error500:
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+            case Falla.TokenRechazado:
+                return new HttpResponseMessage(HttpStatusCode.Unauthorized);
             case Falla.SaldoInsuficiente:
                 return Problema(HttpStatusCode.UnprocessableEntity, "Saldo insuficiente");
             case Falla.CuentaNoExiste:
