@@ -26,6 +26,9 @@ public sealed class AdminCuentasController(CuentaService cuentas) : ControllerBa
     }
 
     [HttpPost("{id:guid}/credito")]
-    public async Task<CuentaAdminResponse> Acreditar(Guid id, CreditoRequest req, CancellationToken ct) =>
-        CuentaAdminResponse.De(await cuentas.AcreditarAsync(id, req.Monto!.Value, ct));
+    public async Task<ActionResult<MovimientoResponse>> Acreditar(
+        Guid id, CreditoRequest req,
+        [FromHeader(Name = IdempotencyHeaders.Key)] string? idempotencyKey,
+        CancellationToken ct) =>
+        this.Responder(await cuentas.AcreditarAsync(id, req.Monto!.Value, idempotencyKey, ct));
 }

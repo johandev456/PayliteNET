@@ -37,3 +37,38 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261122174645_V2_CrearMovimiento') THEN
+    CREATE TABLE movimiento (
+        id uuid NOT NULL,
+        cuenta_id uuid NOT NULL,
+        tipo character varying(10) NOT NULL,
+        monto numeric(19,2) NOT NULL,
+        operacion_id character varying(100) NOT NULL,
+        created_at timestamp with time zone NOT NULL DEFAULT (now()),
+        CONSTRAINT "PK_movimiento" PRIMARY KEY (id),
+        CONSTRAINT ck_movimiento_monto_positivo CHECK (monto > 0),
+        CONSTRAINT "FK_movimiento_cuenta_cuenta_id" FOREIGN KEY (cuenta_id) REFERENCES cuenta (id) ON DELETE RESTRICT
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261122174645_V2_CrearMovimiento') THEN
+    CREATE UNIQUE INDEX ux_movimiento_cuenta_operacion ON movimiento (cuenta_id, operacion_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261122174645_V2_CrearMovimiento') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261122174645_V2_CrearMovimiento', '10.0.15');
+    END IF;
+END $EF$;
+COMMIT;
+

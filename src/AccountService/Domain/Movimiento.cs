@@ -12,6 +12,8 @@ public enum TipoMovimiento
 /// </summary>
 public class Movimiento
 {
+    public const int MaxLongitudOperacionId = 100;
+
     public Guid Id { get; private set; }
     public Guid CuentaId { get; private set; }
     public TipoMovimiento Tipo { get; private set; }
@@ -24,8 +26,7 @@ public class Movimiento
     public Movimiento(Guid cuentaId, TipoMovimiento tipo, decimal monto, string operacionId)
     {
         Montos.ValidarMonto(monto);
-        if (string.IsNullOrWhiteSpace(operacionId))
-            throw new EntradaInvalidaException("El identificador de la operación es obligatorio.");
+        ValidarOperacionId(operacionId);
 
         Id = Guid.NewGuid();
         CuentaId = cuentaId;
@@ -33,6 +34,14 @@ public class Movimiento
         Monto = monto;
         OperacionId = operacionId;
         CreatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public static void ValidarOperacionId(string? operacionId)
+    {
+        if (string.IsNullOrWhiteSpace(operacionId))
+            throw new EntradaInvalidaException("El header Idempotency-Key es obligatorio.");
+        if (operacionId.Length > MaxLongitudOperacionId)
+            throw new EntradaInvalidaException($"Idempotency-Key admite como máximo {MaxLongitudOperacionId} caracteres.");
     }
 
     /// <summary>¿Es la misma operación que se pide ahora? Si no, la clave se está reutilizando mal.</summary>

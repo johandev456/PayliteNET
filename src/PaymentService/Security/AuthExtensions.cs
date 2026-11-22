@@ -34,6 +34,8 @@ public static class AuthExtensions
                 o.RequireHttpsMetadata = auth.GetValue("RequireHttpsMetadata", true);
                 // Sin esto, "sub" se renombra a ClaimTypes.NameIdentifier y "realm_access" se pierde de vista.
                 o.MapInboundClaims = false;
+                // Se reenvía el token del usuario a AccountService (HttpContext.GetTokenAsync("access_token")).
+                o.SaveToken = true;
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,

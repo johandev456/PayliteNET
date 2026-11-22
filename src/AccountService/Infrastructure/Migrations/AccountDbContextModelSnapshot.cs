@@ -69,6 +69,60 @@ namespace AccountService.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_cuenta_saldo_no_negativo", "saldo >= 0");
                         });
                 });
+
+            modelBuilder.Entity("AccountService.Domain.Movimiento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("CuentaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cuenta_id");
+
+                    b.Property<decimal>("Monto")
+                        .HasColumnType("numeric(19,2)")
+                        .HasColumnName("monto");
+
+                    b.Property<string>("OperacionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("operacion_id");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("tipo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CuentaId", "OperacionId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_movimiento_cuenta_operacion");
+
+                    b.ToTable("movimiento", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_movimiento_monto_positivo", "monto > 0");
+                        });
+                });
+
+            modelBuilder.Entity("AccountService.Domain.Movimiento", b =>
+                {
+                    b.HasOne("AccountService.Domain.Cuenta", null)
+                        .WithMany()
+                        .HasForeignKey("CuentaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
 #pragma warning restore 612, 618
         }
     }

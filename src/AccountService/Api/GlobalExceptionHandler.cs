@@ -20,7 +20,7 @@ public sealed class GlobalExceptionHandler(IProblemDetailsService problemDetails
             _ => (500, "Error interno", "Ocurrió un error inesperado."),
         };
 
-        if (status >= 500)
+        if (ex is not DomainException)
             log.LogError(ex, "Error no controlado en {Metodo} {Ruta}", ctx.Request.Method, ctx.Request.Path);
 
         ctx.Response.StatusCode = status;

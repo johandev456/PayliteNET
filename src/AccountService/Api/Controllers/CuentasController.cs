@@ -26,7 +26,11 @@ public sealed class CuentasController(CuentaService cuentas, ICurrentUser usuari
     public async Task<CuentaResponse> Obtener(Guid id, CancellationToken ct) =>
         CuentaResponse.De(await cuentas.ObtenerAsync(id, usuario.Id, ct));
 
+    /// <summary>Débito idempotente: repetir con la misma Idempotency-Key no vuelve a cobrar.</summary>
     [HttpPost("{id:guid}/debito")]
-    public async Task<CuentaResponse> Debitar(Guid id, DebitoRequest req, CancellationToken ct) =>
-        CuentaResponse.De(await cuentas.DebitarAsync(id, usuario.Id, req.Monto!.Value, ct));
+    public async Task<ActionResult<MovimientoResponse>> Debitar(
+        Guid id, DebitoRequest req,
+        [FromHeader(Name = IdempotencyHeaders.Key)] string? idempotencyKey,
+        CancellationToken ct) =>
+        this.Responder(await cuentas.DebitarAsync(id, usuario.Id, req.Monto!.Value, idempotencyKey!, ct));
 }
