@@ -1,0 +1,103 @@
+{
+  "realm": "paylite",
+  "enabled": true,
+  "displayName": "PayLite (dev)",
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "CLIENTE", "description": "Usuario final: sus propias cuentas y pagos" },
+      { "name": "ADMIN", "description": "Operación: ver todas las cuentas y acreditar" },
+      { "name": "SERVICIO", "description": "Llamadas máquina a máquina entre microservicios" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "paylite-test",
+      "name": "Cliente público para pruebas con curl (password grant, SOLO dev)",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "audience-paylite-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "paylite-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "payment-service",
+      "name": "PaymentService (client credentials para la recuperación de pagos)",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "payment-service-dev-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "audience-paylite-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "paylite-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "cliente1",
+      "enabled": true,
+      "email": "cliente1@paylite.local",
+      "emailVerified": true,
+      "firstName": "Cliente",
+      "lastName": "Uno",
+      "credentials": [{ "type": "password", "value": "cliente1-dev", "temporary": false }],
+      "realmRoles": ["CLIENTE"]
+    },
+    {
+      "username": "cliente2",
+      "enabled": true,
+      "email": "cliente2@paylite.local",
+      "emailVerified": true,
+      "firstName": "Cliente",
+      "lastName": "Dos",
+      "credentials": [{ "type": "password", "value": "cliente2-dev", "temporary": false }],
+      "realmRoles": ["CLIENTE"]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@paylite.local",
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "PayLite",
+      "credentials": [{ "type": "password", "value": "admin-dev", "temporary": false }],
+      "realmRoles": ["ADMIN", "CLIENTE"]
+    },
+    {
+      "username": "service-account-payment-service",
+      "enabled": true,
+      "serviceAccountClientId": "payment-service",
+      "realmRoles": ["SERVICIO"]
+    }
+  ]
+}
