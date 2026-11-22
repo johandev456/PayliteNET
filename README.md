@@ -38,6 +38,9 @@ Requisitos: Docker con Compose; para desarrollar, el **SDK de .NET 10**.
 docker compose --profile apps up -d --build
 ```
 
+Si quay.io está bloqueado en tu red, usa la misma imagen oficial de Keycloak desde Docker Hub:
+`KEYCLOAK_IMAGE=keycloak/keycloak:26.8.2 docker compose --profile apps up -d --build`.
+
 **Infraestructura en Docker y servicios desde el IDE o la terminal** (más cómodo para depurar):
 
 ```bash
@@ -119,6 +122,14 @@ Ver el saldo (1000 − 102.90 = 897.10):
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:5001/api/cuentas/$CUENTA
 ```
+
+### Guía de pruebas manuales
+
+[`docs/PRUEBAS.md`](docs/PRUEBAS.md) recorre cada aspecto paso a paso, con el resultado esperado:
+- autenticación, roles y propiedad de los recursos;
+- débitos idempotentes, comisiones, límites, rechazos y concurrencia;
+- caída, timeout y recuperación de pagos `PENDIENTE`, y `REVISION_MANUAL`;
+- garantías en la base de datos.
 
 ### Prueba de humo
 

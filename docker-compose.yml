@@ -41,7 +41,8 @@ services:
     volumes: [keycloak-data:/var/lib/postgresql/data]
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.2
+    # Si quay.io está bloqueado: KEYCLOAK_IMAGE=keycloak/keycloak:26.8.2 (la misma imagen oficial en Docker Hub).
+    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.8.2}
     command: ["start-dev", "--import-realm"]
     restart: unless-stopped
     environment:
