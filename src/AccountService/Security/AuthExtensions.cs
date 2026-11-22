@@ -34,6 +34,16 @@ public static class AuthExtensions
                 o.RequireHttpsMetadata = auth.GetValue("RequireHttpsMetadata", true);
                 // Sin esto, "sub" se renombra a ClaimTypes.NameIdentifier y "realm_access" se pierde de vista.
                 o.MapInboundClaims = false;
+                // Sin sub no hay dueño: el token se rechaza aquí (401) en vez de fallar luego en ICurrentUser (500).
+                o.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = ctx =>
+                    {
+                        if (string.IsNullOrEmpty(ctx.Principal?.FindFirst("sub")?.Value))
+                            ctx.Fail("El token no trae el claim sub.");
+                        return Task.CompletedTask;
+                    },
+                };
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,

@@ -279,6 +279,14 @@ public sealed class PagosApiTests(PostgresFixture pg) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Token_sin_sub_401_y_no_500()
+    {
+        var resp = await PagarAsync(100m, token: TestAuth.Token(sub: null));
+        Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+        Assert.Empty(_cuentas.Llamadas);
+    }
+
+    [Fact]
     public async Task Sin_token_401()
     {
         var resp = await _api.CreateClient().PostAsJsonAsync("/api/pagos", new { cuentaId = Cuenta, monto = 1, metodo = "TARJETA" });

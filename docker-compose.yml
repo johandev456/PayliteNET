@@ -59,6 +59,8 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     ports: ["8081:8080"]
+    # El realm se importa solo si no existe (IGNORE_EXISTING): tras editar el JSON hay que borrar
+    # el volumen keycloak-data para que se vuelva a importar (ver README).
     volumes:
       - ./keycloak/realm-paylite.json:/opt/keycloak/data/import/realm-paylite.json:ro
     depends_on:

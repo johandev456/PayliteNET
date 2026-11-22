@@ -65,6 +65,16 @@ Keycloak tarda unos 20–30 s en estar listo la primera vez, mientras importa el
 | client `payment-service` | secret `payment-service-dev-secret` | SERVICIO (service account) |
 
 Consola de Keycloak: http://localhost:8081, usuario `kcadmin`, contraseña `kcadmin-dev`.
+
+> **El realm solo se importa la primera vez.** Keycloak guarda su base en el volumen `keycloak-data` e importa con
+> la estrategia `IGNORE_EXISTING`, así que editar `keycloak/realm-paylite.json` no tiene efecto en un entorno ya
+> creado. Para reimportarlo, borra ese volumen (los datos de Keycloak se pierden; las bases de cuentas y pagos no):
+>
+> ```bash
+> docker compose rm -sf keycloak keycloak-db && docker volume rm paylite_keycloak-data && docker compose up -d
+> ```
+>
+> `docker compose down -v` también sirve, pero borra además las bases de cuentas y pagos.
 Todas estas contraseñas son de desarrollo y no se reutilizan en ningún otro entorno.
 
 ## Probarlo con curl
@@ -263,6 +273,7 @@ tests/                       unit + integración por servicio; Shared/ (Postgres
 - **Sin `MapInboundClaims = false`**, `sub` se renombra a `ClaimTypes.NameIdentifier` y `realm_access` no se encuentra.
 - **Roles de Keycloak**: ASP.NET Core no entiende `realm_access.roles` sin la `IClaimsTransformation` (que además debe ser idempotente: puede ejecutarse varias veces por petición).
 - **Audiencia**: Keycloak pone `aud=account` por defecto. El realm añade `paylite-api` con un *audience mapper*, y los servicios lo validan.
+- **Cambios en `realm-paylite.json` que no aparecen**: el realm se importa una sola vez (volumen `keycloak-data`, estrategia `IGNORE_EXISTING`). Ver *Usuarios de prueba* para reimportarlo.
 - **Cuenta nueva = saldo 0**: el primer débito da `422`. Usa el crédito de ADMIN.
 - **`RequireHttpsMetadata`** es `true` por defecto. En `Development` y en compose se desactiva porque Keycloak corre en http.
 - **`Math.Round` por defecto es bancario** (ver decisiones).

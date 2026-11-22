@@ -44,7 +44,7 @@ public static class TestAuth
     }
 
     public static string Token(
-        string sub,
+        string? sub,
         string[]? roles = null,
         string audience = Audience,
         string issuer = Issuer,
@@ -60,14 +60,21 @@ public static class TestAuth
             IssuedAt = expira < ahora ? expira.AddMinutes(-5) : ahora,
             NotBefore = expira < ahora ? expira.AddMinutes(-5) : ahora,
             Expires = expira,
-            Claims = new Dictionary<string, object>
-            {
-                ["sub"] = sub,
-                ["preferred_username"] = sub,
-                ["realm_access"] = new Dictionary<string, object> { ["roles"] = roles ?? ["CLIENTE"] },
-            },
+            Claims = Claims(sub, roles),
             SigningCredentials = new SigningCredentials(firmaAjena ? LlaveAjena : Llave, SecurityAlgorithms.RsaSha256),
         });
+    }
+
+    /// <summary><paramref name="sub"/> null simula un token sin sub (lightweight token de Keycloak).</summary>
+    private static Dictionary<string, object> Claims(string? sub, string[]? roles)
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["preferred_username"] = sub ?? "sin-sub",
+            ["realm_access"] = new Dictionary<string, object> { ["roles"] = roles ?? ["CLIENTE"] },
+        };
+        if (sub is not null) claims["sub"] = sub;
+        return claims;
     }
 
     public static HttpClient Como(this HttpClient http, string token)

@@ -64,7 +64,7 @@ public sealed class RecuperacionPagosService(
 
         var ids = await db.Pagos.AsNoTracking()
             .Where(p => p.Estado == EstadoPago.PENDIENTE && p.UpdatedAt < limite)
-            .OrderBy(p => p.CreatedAt)
+            .OrderBy(p => p.UpdatedAt) // misma columna que el índice parcial: rango y orden salen del índice
             .Select(p => p.Id)
             .Take(o.Lote)
             .ToListAsync(ct);

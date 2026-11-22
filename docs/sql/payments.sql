@@ -60,3 +60,28 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261122191146_V2_IndicePendientesPorUpdatedAt') THEN
+    DROP INDEX ix_pago_pendientes;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261122191146_V2_IndicePendientesPorUpdatedAt') THEN
+    CREATE INDEX ix_pago_pendientes_updated_at ON pago (updated_at) WHERE estado = 'PENDIENTE';
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261122191146_V2_IndicePendientesPorUpdatedAt') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261122191146_V2_IndicePendientesPorUpdatedAt', '10.0.15');
+    END IF;
+END $EF$;
+COMMIT;
+

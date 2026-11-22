@@ -39,8 +39,8 @@ public class PaymentDbContext(DbContextOptions<PaymentDbContext> options) : DbCo
             e.HasIndex(p => new { p.OwnerId, p.IdempotencyKey }).IsUnique()
                 .HasDatabaseName("ux_pago_owner_idempotency_key");
             e.HasIndex(p => new { p.OwnerId, p.CreatedAt }).HasDatabaseName("ix_pago_owner_created");
-            // Índice parcial: la recuperación solo mira pendientes.
-            e.HasIndex(p => p.CreatedAt).HasFilter("estado = 'PENDIENTE'").HasDatabaseName("ix_pago_pendientes");
+            // Índice parcial: la recuperación solo mira pendientes, por antigüedad del último intento.
+            e.HasIndex(p => p.UpdatedAt).HasFilter("estado = 'PENDIENTE'").HasDatabaseName("ix_pago_pendientes_updated_at");
         });
     }
 }

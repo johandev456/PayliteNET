@@ -91,8 +91,8 @@ namespace PaymentService.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("ix_pago_pendientes")
+                    b.HasIndex("UpdatedAt")
+                        .HasDatabaseName("ix_pago_pendientes_updated_at")
                         .HasFilter("estado = 'PENDIENTE'");
 
                     b.HasIndex("OwnerId", "CreatedAt")

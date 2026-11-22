@@ -79,6 +79,14 @@ public sealed class CuentasApiTests(PostgresFixture pg) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Token_sin_sub_401_y_no_500()
+    {
+        var resp = await _api.CreateClient().Como(TestAuth.Token(sub: null))
+            .PostAsJsonAsync("/api/cuentas", new { moneda = "DOP" });
+        Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task Cliente_en_admin_403_y_admin_200()
     {
         Assert.Equal(HttpStatusCode.Forbidden, (await Cliente().GetAsync("/api/admin/cuentas")).StatusCode);
