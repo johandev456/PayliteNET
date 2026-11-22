@@ -112,5 +112,10 @@ public sealed class RecuperacionPagosService(
             // Keycloak caído: no se cuenta como intento contra AccountService.
             log.LogWarning(ex, "No se pudo obtener el token de servicio; el pago {PagoId} espera", pago.Id);
         }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            // Timeout de Keycloak, JSON inválido, fallo de base...: no bloquear al resto del lote.
+            log.LogError(ex, "Fallo inesperado recuperando el pago {PagoId}; se reintenta en el próximo ciclo", pago.Id);
+        }
     }
 }
